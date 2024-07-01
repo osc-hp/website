@@ -1,5 +1,11 @@
 # PEARSON ACTIVE LEARN LANGUAGES VOCAB LEARN / TEST AUTOCOMPLETER
 
+import os
+try:
+    os.system("pip install splinter && pip install selenium")
+except:
+    print("Please install 'selenium' and 'splinter' from pip manually")
+    exit(0)
 import time
 
 from selenium.webdriver.common.by import By
