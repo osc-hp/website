@@ -1,0 +1,177 @@
+# PEARSON ACTIVE LEARN LANGUAGES VOCAB LEARN / TEST AUTOCOMPLETER
+
+import time
+
+from selenium.webdriver.common.by import By
+from splinter import Browser
+
+# Vocab Learn XPATH
+NEXT_BUTTON_XPATH = '//button[@class="btn btn-default f-next tooltip3 sa-icon ng-scope tooltipstered" and not(@disabled)]'
+
+# Global XPATH
+INPUT_BOX_XPATH = '//div[contains(@class, "input-box") and contains(@class, "vocabAnswerBox") and contains(@class, "fib-box") and @contenteditable="true"]'
+SUBMIT_BUTTON_XPATH = '//button[@class="btn btn-default vocab_btn1 vocabCheckBtn" and not(@disabled)]'
+
+# Vocab Test element XPATHs
+ENGLISH_TEXT_DIV = "//div[@class='translateFromDivtext input-box']"
+TEST_NEXT_BUTTON_XPATH = '//button[@class="btn btn-default f-vocabNext"]'
+
+
+def try_find_xpath(xpath, times_to_try=5):
+    times = 0
+    while times < times_to_try:
+        try:
+            element = browser.find_by_xpath(xpath).first
+            return element
+        except:
+            time.sleep(1)
+            times += 1
+    return None
+
+
+def try_find_id(id, times_to_try=5):
+    times = 0
+    while times < times_to_try:
+        try:
+            element = browser.find_by_id(id).first
+            return element
+        except:
+            time.sleep(1)
+            times += 1
+    return None
+
+
+def write_to_input_box(element, text, wait_time=0.025):
+    element.type(".")
+    browser.execute_script("arguments[0].textContent = '';", element._element)
+
+    for char in text:
+        browser.execute_script("arguments[0].textContent += arguments[1];", element._element, char)
+        time.sleep(wait_time)
+
+
+phrases = {}
+
+with Browser('chrome') as browser:
+    browser.visit('https://www.pearsonactivelearn.com/app/Task/')
+    input("Press [ENTER] when you are on the vocab learn task.")
+    vocab_learn = True
+
+    while vocab_learn:
+        browser.driver.switch_to.default_content()
+        iframe_element = browser.find_by_id('playerFrame')._element
+
+        if iframe_element:
+            browser.driver.switch_to.frame(iframe_element)
+
+            try:
+                vocab_to_div = try_find_id('vocabTo')._element
+
+                vocab_from_div = try_find_id('vocabFrom')._element
+
+                if not vocab_to_div or not vocab_from_div:
+                    vocab_learn = False
+                    break
+
+                nested_div = vocab_to_div.find_element(By.TAG_NAME, 'div')
+                from_nested_div = vocab_from_div.find_element(By.TAG_NAME, 'div')
+
+                if nested_div:
+                    span_element = nested_div.find_element(By.TAG_NAME, 'span')
+
+                    # Ensure the span element exists
+                    if span_element:
+                        spanish_text = span_element.text
+                    else:
+                        print("No span element found inside the nested div.")
+                else:
+                    print("No nested div found inside the 'vocabTo' div.")
+
+                if from_nested_div:
+                    span_element = from_nested_div.find_element(By.TAG_NAME, 'span')
+
+                    # Ensure the span element exists
+                    if span_element:
+                        english_text = span_element.text
+                    else:
+                        print("No span element found inside the nested div.")
+                else:
+                    print("No nested div found inside the 'vocabFrom' div.")
+
+                phrases[english_text] = spanish_text
+
+                input_box = try_find_xpath(INPUT_BOX_XPATH)
+                write_to_input_box(input_box, spanish_text)
+
+                time.sleep(0.25)
+
+                submit_button = try_find_xpath(SUBMIT_BUTTON_XPATH)
+                submit_button.click()
+
+                time.sleep(0.5)
+
+                next_button = try_find_xpath(NEXT_BUTTON_XPATH)
+                next_button.click()
+
+                # Wait longer as it has to load the next task
+                time.sleep(2)
+
+            except Exception as e:
+                vocab_learn = False
+                break
+
+        else:
+            print("Iframe element 'playerFrame' not found.\nAre you on the vocab learn task?")
+            break
+
+    print(phrases)
+
+    input("Press [ENTER] when you are on the vocab test task.")
+    vocab_test = True
+
+    while vocab_test:
+        browser.driver.switch_to.default_content()
+        iframe_element = browser.find_by_id('playerFrame')._element
+        if iframe_element:
+            browser.driver.switch_to.frame(iframe_element)
+
+            try:
+                english_text_div = try_find_xpath(ENGLISH_TEXT_DIV)._element
+                if english_text_div:
+                    span_element = english_text_div.find_element(By.TAG_NAME, 'span')
+                    if span_element:
+                        english_text = span_element.text
+                    else:
+                        print("No span element found inside the nested div.")
+                        vocab_test = False
+                        break
+                else:
+                    print("English text div could not be found.")
+                    vocab_test = False
+                    break
+
+                input_box = try_find_xpath(INPUT_BOX_XPATH)
+
+                if english_text in phrases:
+                    write_to_input_box(input_box, phrases[english_text])
+                else:
+                    print("Cannot find the translation.")
+                    write_to_input_box(input_box, "notfound")
+
+                time.sleep(1)
+
+                submit_button = try_find_xpath(SUBMIT_BUTTON_XPATH)
+                submit_button.click()
+
+                time.sleep(1)
+
+                next_button = try_find_xpath(TEST_NEXT_BUTTON_XPATH)
+                next_button.click()
+
+                # Wait longer as it has to load the next task
+                time.sleep(2)
+
+            except Exception as e:
+                vocab_test = False
+                break
+    input("Press [ENTER] to close browser")
